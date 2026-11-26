@@ -15,7 +15,7 @@ export function Home({diaries,loading,error,creating,onNew,onSample,onOpen,onDel
     <div className="mobile-notice home-mobile-notice" role="note"><ShieldCheck size={15}/>手机也能编辑与导出。草稿仅保存在当前设备的浏览器。</div>
     <main>
       <section className="hero">
-        <div className="hero-copy"><span className="eyebrow"><span/> FOR ALL THE LITTLE MOMENTS</span><h1>把日子，<br/><span className="hero-underline">慢慢画下来<svg viewBox="0 0 420 20" aria-hidden="true"><path d="M6 12Q190 -2 412 9M30 18Q210 4 380 15"/></svg></span><span className="title-dot">。</span></h1><p>一张照片，几句心情，一点手绘的温度。<br/>把平凡生活，装订成只属于你的日记本。</p><button className="btn primary hero-cta" onClick={onNew} disabled={creating}><Plus size={19}/>{creating?'准备纸张中…':'开始我的第一篇'}<ArrowRight size={18}/></button><div className="hero-note"><ShieldCheck size={14}/>无需注册 · 本地保存 · 免费导出</div></div>
+        <div className="hero-copy"><span className="eyebrow"><span/> FOR ALL THE LITTLE MOMENTS</span><h1>把日子，<br/><span className="hero-underline">慢慢画下来<svg viewBox="0 0 420 20" aria-hidden="true"><path d="M6 12Q190 -2 412 9M30 18Q210 4 380 15"/></svg></span><span className="title-dot">。</span></h1><p>一张照片，几句心情，一点手绘的温度。<br/>把平凡生活，装订成只属于你的日记本。</p><button className="btn primary hero-cta" onClick={onNew} disabled={creating}><Plus size={19}/>{creating?'准备纸张中…':'记录我的美好时光'}<ArrowRight size={18}/></button><div className="hero-note"><ShieldCheck size={14}/>无需注册 · 本地保存 · 免费导出</div></div>
         <div className="hero-art" aria-label="手绘日记效果示例">
           <span className="floating-note note-top">生活的小事，都值得被记住<svg viewBox="0 0 90 48"><path d="M7 5q64 -2 59 29m-14-9 14 12 12-13"/></svg></span>
           <div className="hero-back-paper"/>

@@ -16,8 +16,8 @@ test('六款卡通模板保留内容，预览导出和保存恢复一致',async(
   await page.getByLabel('给今天起个名字').fill('今天有一点可爱');await page.getByLabel('日记正文').fill('小小的快乐，也想认真收藏。');
   await page.getByRole('button',{name:'添加兔兔',exact:true}).click();
   for(const theme of THEMES.filter(theme=>theme.id!=='classic')){
-    await page.getByRole('button',{name:`使用${theme.label}模板`,exact:true}).click();await ready(page);
-    await expect(page.getByRole('button',{name:`使用${theme.label}模板`,exact:true})).toHaveAttribute('aria-pressed','true');
+    await page.getByRole('combobox',{name:'手绘模板',exact:true}).selectOption(theme.id);await ready(page);
+    await expect(page.getByRole('combobox',{name:'手绘模板',exact:true})).toHaveValue(theme.id);
     await expect(page.getByLabel('给今天起个名字')).toHaveValue('今天有一点可爱');
     await expect(page.locator('.photo-thumb')).toHaveCount(1);await expect(page.locator('.added-stickers>button')).toHaveCount(3);
     // The paper color must actually reach the canvas, not just its thumbnail.
@@ -26,19 +26,19 @@ test('六款卡通模板保留内容，预览导出和保存恢复一致',async(
     const image=await png(page);await image.saveAs(`artifacts/theme-${theme.id}-${browserName}.png`);
   }
   await expect(page.getByText('已保存至本地',{exact:true})).toBeVisible();await page.reload();await ready(page);
-  await expect(page.getByRole('button',{name:'使用蜜桃猫咪模板',exact:true})).toHaveAttribute('aria-pressed','true');
+  await expect(page.getByRole('combobox',{name:'手绘模板',exact:true})).toHaveValue('kitty');
   await page.getByRole('button',{name:/添加页/}).click();
   await page.getByLabel('给今天起个名字').fill('第二页仍是我');await page.getByRole('button',{name:'添加小熊',exact:true}).click();
   await page.getByRole('tab',{name:'01 第 1 页'}).click();await page.getByRole('button',{name:'将当前页样式应用到其他页',exact:true}).click();
   await page.getByRole('button',{name:'确认',exact:true}).click();await page.getByRole('tab',{name:'02 第 2 页'}).click();
-  await expect(page.getByRole('button',{name:'使用蜜桃猫咪模板',exact:true})).toHaveAttribute('aria-pressed','true');
+  await expect(page.getByRole('combobox',{name:'手绘模板',exact:true})).toHaveValue('kitty');
   await expect(page.getByLabel('给今天起个名字')).toHaveValue('第二页仍是我');await expect(page.locator('.added-stickers>button')).toHaveCount(1);
   const pdf=page.waitForEvent('download');await page.getByRole('button',{name:'导出整本 PDF',exact:true}).click();await pdf;await expect(page.getByText('已生成 2 页 PDF')).toBeVisible();
-  await page.getByRole('button',{name:'完成',exact:true}).click();await page.getByRole('button',{name:'使用经典手记模板',exact:true}).click();await ready(page);
+  await page.getByRole('button',{name:'完成',exact:true}).click();await page.getByRole('combobox',{name:'手绘模板',exact:true}).selectOption('classic');await ready(page);
   expect(errors).toEqual([]);
 });
 test('十二种新贴纸可分类、达到上限并完整导出',async({page})=>{
-  await page.goto('/');await page.getByRole('button',{name:'开始我的第一篇'}).click();
+  await page.goto('/');await page.getByRole('button',{name:'记录我的美好时光'}).click();
   await expect(page.locator('.cute-sticker-options>button')).toHaveCount(17);
   await page.getByRole('button',{name:'小表情',exact:true}).click();await expect(page.locator('.cute-sticker-options>button')).toHaveCount(6);
   await page.getByRole('button',{name:'小装饰',exact:true}).click();await expect(page.locator('.cute-sticker-options>button')).toHaveCount(6);
@@ -61,17 +61,17 @@ test('十二种新贴纸可分类、达到上限并完整导出',async({page})=>
 test.describe('手机卡通模板',()=>{
   test.use({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
   test('小屏模板切换、新表情拖动与导出',async({page})=>{
-    await page.goto('/');await page.getByRole('button',{name:'开始我的第一篇'}).tap();await page.getByRole('button',{name:'装饰',exact:true}).tap();
-    await page.getByRole('button',{name:'使用兔兔花园模板',exact:true}).tap();await page.getByRole('button',{name:'小表情',exact:true}).tap();
+    await page.goto('/');await page.getByRole('button',{name:'记录我的美好时光'}).tap();
+    await page.getByRole('combobox',{name:'手绘模板',exact:true}).selectOption('bunny');await page.getByRole('button',{name:'小表情',exact:true}).tap();
     await page.getByRole('button',{name:'添加兔兔',exact:true}).tap();await page.getByRole('button',{name:'在预览中拖动',exact:true}).tap();await ready(page);
     const target=page.getByRole('button',{name:'拖动选中贴纸',exact:true});await target.scrollIntoViewIfNeeded();
     const before=await page.locator('.sticker-selection').getAttribute('style'),box=(await target.boundingBox())!;
     await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.down();await page.mouse.move(box.x-50,box.y+100,{steps:5});await page.mouse.up();
     await expect(page.locator('.sticker-selection')).not.toHaveAttribute('style',before!);
-    await png(page);await page.getByRole('button',{name:'装饰',exact:true}).tap();
+    await png(page);await page.getByRole('button',{name:'返回编辑',exact:true}).tap();
     for(const width of [320,390,430,740]){await page.setViewportSize({width,height:width===740?390:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);}
     await page.setViewportSize({width:390,height:844});
-    await page.locator('.theme-options').screenshot({path:'artifacts/cute-templates-mobile.png'});
+    await page.locator('.theme-section').screenshot({path:'artifacts/cute-templates-mobile.png'});
     await page.getByRole('button',{name:'全部',exact:true}).tap();await page.locator('.cute-sticker-options').screenshot({path:'artifacts/cute-stickers-mobile.png'});
   });
 });

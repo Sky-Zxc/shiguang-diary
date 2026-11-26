@@ -138,7 +138,6 @@ export async function renderPage(page: DiaryPage, options: { scale?: number; pre
   const overflow=titleLines.length>1 || (lines.length>0 && bodyY+(lines.length-1)*lineHeight>902);
   ctx.save();ctx.beginPath();ctx.rect(65,bodyY-30,670,934-(bodyY-30));ctx.clip();
   lines.forEach((text,i)=>ctx.fillText(text,74,bodyY+i*lineHeight));ctx.restore();
-  if(preview&&!page.text.body){ctx.fillStyle='#938a76';ctx.font=`22px "${font}"`;ctx.fillText('写一点今天的小事吧…',74,bodyY);}
   if(preview&&!page.photos.length){
     ctx.fillStyle='#8d997211';ctx.strokeStyle='#939d7766';ctx.setLineDash([6,7]);rounded(ctx,70,580,660,210,4);ctx.fill();ctx.stroke();ctx.setLineDash([]);
     ctx.font=`22px "${font}"`;ctx.fillStyle='#7d866b';ctx.textAlign='center';ctx.fillText('让一张照片，替你留住今天',400,692);ctx.textAlign='left';

@@ -11,7 +11,7 @@ async function geometry(page: Page) {
 }
 for (const [kind,width,height] of [['横图',1200,900],['竖图',900,1200]] as const) {
   test(`${kind}相框无灰边、短正文自动放大、PNG 保持 4:5`,async({page,browserName})=>{
-    await page.goto('/');await page.getByRole('button',{name:'开始我的第一篇'}).click();
+    await page.goto('/');await page.getByRole('button',{name:'记录我的美好时光'}).click();
     const encoded=await page.evaluate(({width,height})=>{
       const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;const ctx=canvas.getContext('2d')!;
       ctx.fillStyle='#345d7a';ctx.fillRect(0,0,width,height);

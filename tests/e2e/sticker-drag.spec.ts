@@ -17,7 +17,7 @@ async function move(page:Page,dx:number,dy:number,touch=false) {
   }
 }
 test('贴纸拖动、键盘、取消、保存复制、预设及 PNG/PDF',async({page})=>{
-  await page.goto('/');await page.getByRole('button',{name:'开始我的第一篇'}).click();
+  await page.goto('/');await page.getByRole('button',{name:'记录我的美好时光'}).click();
   await page.getByRole('button',{name:'添加星星',exact:true}).click();
   const original=await position(page);await move(page,-110,150);
   const moved=await position(page);expect(moved.x).toBeLessThan(original.x-150);expect(moved.y).toBeGreaterThan(original.y+200);
@@ -52,13 +52,13 @@ test('贴纸拖动、键盘、取消、保存复制、预设及 PNG/PDF',async({
 test.describe('手机贴纸拖动',()=>{
   test.use({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
   test('从装饰进入预览触屏拖动，刷新后位置保留',async({page,browserName})=>{
-    await page.goto('/');await page.getByRole('button',{name:'开始我的第一篇'}).tap();await page.getByRole('button',{name:'装饰',exact:true}).tap();
+    await page.goto('/');await page.getByRole('button',{name:'记录我的美好时光'}).tap();
     await page.getByRole('button',{name:'添加星星',exact:true}).tap();await page.getByRole('button',{name:'在预览中拖动',exact:true}).tap();
     const original=await position(page);await move(page,-70,110,browserName==='chromium');
     const moved=await position(page);expect(moved.x).toBeLessThan(original.x-100);expect(moved.y).toBeGreaterThan(original.y+150);
-    await expect(page.getByRole('button',{name:'预览',exact:true})).toHaveAttribute('aria-pressed','true');
+    await expect(page.getByRole('button',{name:'预览',exact:true})).toHaveAttribute('aria-expanded','true');
     await expect(page.getByText('已保存至本地',{exact:true})).toBeVisible();await page.reload();
-    await page.getByRole('button',{name:'装饰',exact:true}).tap();await page.getByRole('button',{name:'选中贴纸 1',exact:true}).tap();
+    await page.getByRole('button',{name:'选中贴纸 1',exact:true}).tap();
     await expect(page.getByLabel('贴纸位置',{exact:true})).toHaveValue('custom');await page.getByRole('button',{name:'在预览中拖动',exact:true}).tap();
     expect(await position(page)).toEqual(moved);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   });
