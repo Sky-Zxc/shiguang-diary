@@ -1,0 +1,32 @@
+{
+  "name": "shiguang-diary",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:e2e": "playwright test --project=chromium",
+    "test:browsers": "playwright test"
+  },
+  "dependencies": {
+    "idb": "^8.0.3",
+    "jspdf": "^4.2.1",
+    "lucide-react": "^0.468.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.1.0",
+    "fake-indexeddb": "^6.2.4",
+    "typescript": "~5.9.3",
+    "vite": "^7.2.2",
+    "vitest": "^4.0.9"
+  }
+}

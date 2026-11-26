@@ -1,0 +1,34 @@
+import { ArrowRight, ArrowUpRight, BookOpen, Download, Feather, ImagePlus, Leaf, LockKeyhole, Plus, RefreshCw, ShieldCheck, Sparkles, Trash2 } from 'lucide-react';
+import { Brand } from './ui';
+import { SAMPLE_INFO } from './samples';
+import type { Diary } from './types';
+
+interface Props {
+  diaries:Diary[];loading:boolean;error:string;creating:boolean;
+  onNew:()=>void;onSample:(index:number)=>void;onOpen:(diary:Diary)=>void;
+  onDelete:(diary:Diary)=>void;onExport:(diary:Diary)=>void;onRetry:()=>void;
+}
+function timeLabel(iso:string){return new Intl.DateTimeFormat('zh-CN',{month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'}).format(new Date(iso));}
+export function Home({diaries,loading,error,creating,onNew,onSample,onOpen,onDelete,onExport,onRetry}:Props){
+  return <div className="home-page">
+    <header className="home-header"><a className="brand-link" href="#" aria-label="拾光手记首页"><Brand/></a><nav aria-label="主导航"><a href="#journals">我的日记本</a><a href="#inspiration">灵感小样 <ArrowUpRight size={13}/></a></nav><span className="private-label"><LockKeyhole size={14}/>只留在你的浏览器</span></header>
+    <div className="mobile-notice home-mobile-notice" role="note"><ShieldCheck size={15}/>手机也能编辑与导出。草稿仅保存在当前设备的浏览器。</div>
+    <main>
+      <section className="hero">
+        <div className="hero-copy"><span className="eyebrow"><span/> FOR ALL THE LITTLE MOMENTS</span><h1>把日子，<br/><span className="hero-underline">慢慢画下来<svg viewBox="0 0 420 20" aria-hidden="true"><path d="M6 12Q190 -2 412 9M30 18Q210 4 380 15"/></svg></span><span className="title-dot">。</span></h1><p>一张照片，几句心情，一点手绘的温度。<br/>把平凡生活，装订成只属于你的日记本。</p><button className="btn primary hero-cta" onClick={onNew} disabled={creating}><Plus size={19}/>{creating?'准备纸张中…':'开始我的第一篇'}<ArrowRight size={18}/></button><div className="hero-note"><ShieldCheck size={14}/>无需注册 · 本地保存 · 免费导出</div></div>
+        <div className="hero-art" aria-label="手绘日记效果示例">
+          <span className="floating-note note-top">生活的小事，都值得被记住<svg viewBox="0 0 90 48"><path d="M7 5q64 -2 59 29m-14-9 14 12 12-13"/></svg></span>
+          <div className="hero-back-paper"/>
+          <div className="hero-journal"><span className="washi hero-washi"/><div className="sample-date">NOV. 25, 2026 <span>晴 · 好心情</span></div><h2>把周末交给山野</h2><div className="hero-photo"><img src="/images/lake.jpg" alt="群山环抱的碧绿色湖泊"/><small>a little escape to nature</small></div><p>没有赶路，也没有计划。<br/>只是坐在湖边，看云慢慢经过山顶。<br/>原来，慢下来的日子也会发光。</p><div className="handdrawn-star">✧</div><span className="hero-location"><Leaf size={13}/>山野之间</span><span className="journal-footer">a day to remember</span></div>
+          <span className="floating-note note-bottom">a little piece of today.</span><div className="doodle-flower" aria-hidden="true"><svg viewBox="0 0 90 130"><path d="M43 126q20-50 0-90m6 64q-38 3-34-25 20-1 34 25m2-16q35-5 30-30-22 3-30 30"/><path d="M43 40C12 68 3 30 30 25 5-2 41-16 47 14 66-11 91 12 66 28 98 42 69 70 52 43Z"/><circle cx="47" cy="29" r="9"/></svg></div>
+        </div>
+      </section>
+      <div className="feature-strip"><span><ImagePlus size={19}/><b>照片 + 心情</b><small>记录不必复杂</small></span><span><Feather size={19}/><b>每一页，都有自己的样子</b><small>纸张、字体、贴纸随心搭</small></span><span><Download size={19}/><b>把喜欢的日子带走</b><small>高清 PNG · 整本 PDF</small></span></div>
+      <section className="home-section" id="journals"><div className="home-section-title"><div><span className="eyebrow">YOUR LITTLE COLLECTION</span><h2>我的日记本 <span>{diaries.length.toString().padStart(2,'0')}</span></h2></div><button className="btn outline" onClick={onNew} disabled={creating}><Plus size={17}/>新建日记本</button></div>
+        {loading?<div className="list-loading"><RefreshCw className="spin" size={20}/>正在翻找你的日记本…</div>:error?<div className="empty-journals"><p role="alert">{error}</p><button className="btn" onClick={onRetry}><RefreshCw size={15}/>重新读取</button></div>:diaries.length===0?<div className="empty-journals"><div className="empty-book"><BookOpen size={32}/><span>+</span></div><h3>你的故事，从这一页开始</h3><p>还没有日记本。今天有什么想留下的小事？</p><button className="text-button" disabled={creating} onClick={onNew}>写下第一篇 <ArrowRight size={16}/></button><span className="empty-doodle" aria-hidden="true"><Leaf size={69} strokeWidth={0.8}/></span></div>:<div className="diary-grid">{diaries.map((diary,index)=><article className="diary-card" key={diary.id}><button className="diary-cover" onClick={()=>onOpen(diary)} aria-label={`打开 ${diary.title||'未命名日记本'}`}>{diary.cover?<img src={diary.cover} alt={`${diary.title}封面`}/>:<div className={`cover-placeholder paper-${diary.pages[0].template.paper}`}><BookOpen size={32}/><span>{diary.pages[0].text.title||'日子，慢慢写'}</span></div>}<span className="cover-number">NO. {(index+1).toString().padStart(2,'0')}</span><span className="cover-open">继续编辑 <ArrowUpRight size={18}/></span></button><div className="diary-info"><button className="card-title" onClick={()=>onOpen(diary)}>{diary.title||'未命名日记本'}</button><p>{timeLabel(diary.updatedAt)}<span>共 {diary.pages.length} 页</span></p><div className="diary-card-actions"><button className="text-button" onClick={()=>onOpen(diary)}>继续编辑 <ArrowRight size={14}/></button><div><button className="icon-button" aria-label={`导出 ${diary.title} PDF`} title="导出整本 PDF" onClick={()=>onExport(diary)}><Download size={17}/></button><button className="icon-button danger" aria-label={`删除 ${diary.title}`} title="删除日记本" onClick={()=>onDelete(diary)}><Trash2 size={16}/></button></div></div></div></article>)}<button className="new-diary-card" disabled={creating} onClick={onNew}><span><Plus size={28}/></span><b>再收藏一些小日子</b><small>新建一本日记 · 最多 3 页</small></button></div>}
+      </section>
+      <section className="home-section inspiration" id="inspiration"><div className="home-section-title"><div><span className="eyebrow">A LITTLE INSPIRATION</span><h2>给记录一点灵感 <Sparkles size={22} strokeWidth={1.3}/></h2></div><p>不必完美，喜欢就好。</p></div><div className="sample-cards">{SAMPLE_INFO.map((sample,i)=><button key={sample.title} className={`sample-card sample-${sample.paper}`} onClick={()=>onSample(i)} disabled={creating} aria-label={`使用示例：${sample.title}`}><span className="sample-tag">{sample.caption}</span><div className="sample-image"><img src={sample.image} alt={sample.description} loading="lazy"/><span className="washi"/></div><div className="sample-card-copy"><span>{sample.tag}</span><h3>{sample.title}</h3><span className="sample-arrow"><ArrowUpRight size={22}/></span></div><span className="sample-badge">示例 · 点击开始创作</span></button>)}</div></section>
+      <section className="privacy-note"><LockKeyhole size={18}/><p><b>属于你的日子，只留给你。</b><span>照片与文字只保存在当前设备的浏览器中，不上传服务器。记得导出珍贵的记录，清理浏览器数据会移除草稿。</span></p></section>
+    </main><footer className="home-footer"><Brand compact/><span>Made for the days worth keeping.</span><span>慢慢生活，好好记录。</span></footer>
+  </div>;
+}
