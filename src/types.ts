@@ -11,7 +11,7 @@ export interface Photo {
 }
 export interface PhotoBounds { x: number; y: number; w: number; h: number }
 export interface Sticker {
-  id: string; type: StickerType; position: number; rotation: number;
+  id: string; type: StickerType; position: number; rotation: number; center?: { x: number; y: number };
 }
 export interface DiaryPage {
   id: string; photos: Photo[]; layout: Layout;

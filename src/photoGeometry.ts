@@ -1,6 +1,14 @@
-import type { DiaryPage, PhotoBounds } from './types';
+import type { DiaryPage, Layout, Photo, PhotoBounds } from './types';
 
 export interface Box extends PhotoBounds { rotation?: number }
+export interface PhotoLayoutOptions {
+  imageSizes?: Record<string, { width: number; height: number }>;
+  availableHeight?: number;
+}
+export function photoFrameInsets(photo: Photo, layout: Layout) {
+  const pad = photo.frame === 'white' ? 11 : 7;
+  return { pad, bottom: layout === 'polaroid' ? 28 : pad };
+}
 export type ResizeHandle = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w';
 export const RESIZE_HANDLES: { id: ResizeHandle; label: string; x: number; y: number }[] = [
   { id: 'nw', label: '左上角', x: 0, y: 0 },
@@ -27,19 +35,32 @@ function inside(box: Box) {
   return b.left >= LIMITS.left - tolerance && b.right <= LIMITS.right + tolerance &&
     b.top >= LIMITS.top - tolerance && b.bottom <= LIMITS.bottom + tolerance;
 }
-export function photoGeometry(page: DiaryPage): Box[] {
+export function photoGeometry(page: DiaryPage, options: PhotoLayoutOptions = {}): Box[] {
   const n = page.photos.length;
   if (!n) return [];
-  const area = { x: 70, y: 208, w: 660, h: n > 2 ? 348 : 310 };
+  const area = { x: 70, y: 208, w: 660, h: options.availableHeight ?? (n > 2 ? 348 : 310) };
   const cols = n === 1 ? 1 : n === 2 ? 2 : n === 3 && page.layout === 'scattered' ? 3 : 2;
   const rows = Math.ceil(n / cols), gap = 22;
+  const cellW = (area.w - gap * (cols - 1)) / cols, cellH = (area.h - gap * (rows - 1)) / rows;
+  const sizes = page.photos.map(photo => {
+    const image = options.imageSizes?.[photo.blobKey];
+    if (!image || !Number.isFinite(image.width) || !Number.isFinite(image.height) || image.width <= 0 || image.height <= 0) return { w: cellW, h: cellH };
+    const { pad, bottom } = photoFrameInsets(photo, page.layout);
+    const scale = Math.min((cellW - pad * 2) / image.width, (cellH - pad - bottom) / image.height);
+    return { w: image.width * scale + pad * 2, h: image.height * scale + pad + bottom };
+  });
+  const rowHeights = Array.from({ length: rows }, (_, row) => Math.max(...sizes.slice(row * cols, (row + 1) * cols).map(size => size.h)));
   return page.photos.map((photo, i) => {
-    const w = (area.w - gap * (cols - 1)) / cols, h = (area.h - gap * (rows - 1)) / rows;
+    const { w, h } = sizes[i], row = Math.floor(i / cols);
     const scattered = page.layout === 'scattered' || page.layout === 'polaroid';
     const rotation = scattered ? photo.rotation : 0;
-    const automatic: Box = { x: area.x + i % cols * (w + gap), y: area.y + Math.floor(i / cols) * (h + gap) + (page.layout === 'scattered' && i % 2 ? 12 : 0), w, h, rotation };
+    const automatic: Box = {
+      x: area.x + i % cols * (cellW + gap) + (cellW - w) / 2,
+      y: area.y + rowHeights.slice(0, row).reduce((sum, height) => sum + height + gap, 0) + (page.layout === 'scattered' && i % 2 ? 12 : 0),
+      w, h, rotation,
+    };
     const bounds = photo.bounds;
-    if (bounds && Object.values(bounds).every(Number.isFinite) && bounds.w >= MIN_PHOTO_SIZE && bounds.h >= MIN_PHOTO_SIZE && inside({ ...bounds, rotation })) return { ...bounds, rotation };
+    if (bounds && Object.values(bounds).every(Number.isFinite) && bounds.w >= Math.min(MIN_PHOTO_SIZE, w) && bounds.h >= Math.min(MIN_PHOTO_SIZE, h) && inside({ ...bounds, rotation })) return { ...bounds, rotation };
     return automatic;
   });
 }

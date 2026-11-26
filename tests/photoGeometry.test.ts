@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createDiary, duplicatePage } from '../src/model';
-import { MIN_PHOTO_SIZE, photoGeometry, resetPhotoBounds, resizePhotoBox, visualBounds, type Box } from '../src/photoGeometry';
+import { MIN_PHOTO_SIZE, photoFrameInsets, photoGeometry, resetPhotoBounds, resizePhotoBox, visualBounds, type Box } from '../src/photoGeometry';
 
 function anchor(box: Box, x: number, y: number) {
   const a = (box.rotation ?? 0) * Math.PI / 180;
@@ -43,5 +43,49 @@ describe('照片背景大小', () => {
     page.photos[0].bounds = { x: NaN, y: 250, w: -30, h: 0 };
     expect(photoGeometry(page)[0]).toEqual(automatic);
     expect(resizePhotoBox(automatic, 'e', NaN, Infinity)).toEqual(automatic);
+  });
+});
+
+
+describe('自动相框贴合照片', () => {
+  it('横图、竖图和全景图的内框保持原比例，不产生灰色填充区域', () => {
+    for (const frame of ['white', 'rounded', 'shadow'] as const) {
+      for (const [width, height] of [[1200, 900], [900, 1200], [4000, 600]]) {
+        const page = createDiary().pages[0];
+        page.photos.push({ id: 'photo', blobKey: 'image', name: 'a.jpg', rotation: 0, frame });
+        const box = photoGeometry(page, { imageSizes: { image: { width, height } } })[0];
+        const { pad, bottom } = photoFrameInsets(page.photos[0], page.layout);
+        expect((box.w - pad * 2) / (box.h - pad - bottom)).toBeCloseTo(width / height, 8);
+        expect(box.x + box.w / 2).toBeCloseTo(400);
+        expect(box.y).toBe(208);
+        expect(box.w).toBeLessThanOrEqual(660);
+        expect(box.h).toBeLessThanOrEqual(310);
+      }
+    }
+  });
+  it('多张不同比例照片在各布局中保持完整，自动收紧行距', () => {
+    const imageSizes = { landscape: { width: 1200, height: 900 }, portrait: { width: 900, height: 1200 } };
+    for (const layout of ['polaroid', 'duo', 'scattered', 'grid', 'tape'] as const) {
+      const page = createDiary().pages[0]; page.layout = layout;
+      page.photos = Array.from({ length: 6 }, (_, i) => ({ id: String(i), blobKey: i % 2 ? 'portrait' : 'landscape', name: 'a.jpg', rotation: 0, frame: 'white' }));
+      const boxes = photoGeometry(page, { imageSizes });
+      boxes.forEach((box, i) => {
+        const image = imageSizes[page.photos[i].blobKey as keyof typeof imageSizes];
+        const { pad, bottom } = photoFrameInsets(page.photos[i], layout);
+        expect((box.w - pad * 2) / (box.h - pad - bottom)).toBeCloseTo(image.width / image.height, 8);
+        expect(box.x).toBeGreaterThanOrEqual(70); expect(box.x + box.w).toBeLessThanOrEqual(730);
+        expect(box.y + box.h).toBeLessThanOrEqual(568);
+      });
+    }
+  });
+  it('旧草稿直接根据图片尺寸适配，并保留用户已调整的背景', () => {
+    const page = createDiary().pages[0];
+    page.photos.push({ id: 'photo', blobKey: 'image', name: 'a.jpg', rotation: 0, frame: 'white' });
+    const options = { imageSizes: { image: { width: 1200, height: 900 } } };
+    expect(photoGeometry(page, options)[0].w).toBeLessThan(500);
+    page.photos[0].bounds = { x: 100, y: 230, w: 600, h: 300 };
+    expect(photoGeometry(page, options)[0]).toMatchObject(page.photos[0].bounds);
+    resetPhotoBounds(page);
+    expect(photoGeometry(page, options)[0].w).toBeLessThan(500);
   });
 });

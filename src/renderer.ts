@@ -1,15 +1,12 @@
 import { HEIGHT, WIDTH } from './model';
+import { stickerGeometry } from './stickerGeometry';
 import { ensureFont, loadPhoto } from './resources';
 import type { DiaryPage, StickerType } from './types';
-import { photoGeometry, visualBounds, type Box } from './photoGeometry';
+import { photoFrameInsets, photoGeometry, visualBounds, type Box, type PhotoLayoutOptions } from './photoGeometry';
 
 export interface HitBox extends Box { id: string; kind: 'photo' | 'sticker' }
-export interface RenderResult { canvas: HTMLCanvasElement; overflow: boolean; errors: string[]; boxes: HitBox[] }
+export interface RenderResult { canvas: HTMLCanvasElement; overflow: boolean; errors: string[]; boxes: HitBox[]; photoLayout: PhotoLayoutOptions }
 const papers = { cream: '#f9f4e6', kraft: '#d9bc93', yellow: '#fff0c8', grid: '#f8f6eb', lined: '#f6f3e9' };
-export const POSITIONS = [
-  { x: 680, y: 112 }, { x: 110, y: 113 }, { x: 690, y: 492 }, { x: 90, y: 490 },
-  { x: 690, y: 866 }, { x: 110, y: 878 }, { x: 410, y: 92 }, { x: 420, y: 905 },
-];
 function rounded(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, radius = 5) {
   ctx.beginPath(); ctx.roundRect(x, y, w, h, radius);
 }
@@ -92,18 +89,29 @@ export async function renderPage(page: DiaryPage, options: { scale?: number; pre
   ctx.fillText(titleLines[0]??'',70,147);
   ctx.strokeStyle='#bfa98688';ctx.lineWidth=1;line(ctx,[[70,174],[730,174]]);
   ctx.font='11px Georgia,serif';ctx.fillStyle='#8e8878';ctx.fillText('LITTLE MOMENTS, BEAUTIFULLY KEPT.',70,192);
+  ctx.font=`${page.template.fontSize*1.5}px "${font}"`;
+  const lines=page.text.body?wrap(ctx,page.text.body,650):[];
+  const lineHeight=page.template.fontSize*2.35;
   const boxes: HitBox[]=[], errors:string[]=[];
-  const geometries=photoGeometry(page);
   const photos=await Promise.all(page.photos.map(async photo=>{
     try {return await loadPhoto(photo.blobKey);} catch(error){if(strict)throw error; errors.push(photo.id);return null;}
   }));
+  const photoLayout: PhotoLayoutOptions = { imageSizes: {} };
+  page.photos.forEach((photo, index) => {
+    const image = photos[index];
+    if (image) photoLayout.imageSizes![photo.blobKey] = { width: image.naturalWidth, height: image.naturalHeight };
+  });
+  // Give a single photo the available page width and height after reserving its text.
+  // Dimensions come from the actual image, so older diaries need no migration.
+  if (page.photos.length === 1) photoLayout.availableHeight = Math.max(310, Math.min(590, 902 - 208 - 42 - Math.max(0, lines.length - 1) * lineHeight - 20));
+  const geometries=photoGeometry(page, photoLayout);
   page.photos.forEach((photo,index)=>{
     const box=geometries[index];boxes.push({...box,id:photo.id,kind:'photo'});
     ctx.save();ctx.translate(box.x+box.w/2,box.y+box.h/2);ctx.rotate((box.rotation??0)*Math.PI/180);
     const x=-box.w/2,y=-box.h/2;
     ctx.shadowColor='#51402a30';ctx.shadowBlur=photo.frame==='shadow'?14:7;ctx.shadowOffsetY=4;
     ctx.fillStyle='#fffdf6';rounded(ctx,x,y,box.w,box.h,photo.frame==='rounded'?18:2);ctx.fill();ctx.shadowColor='transparent';
-    const pad=photo.frame==='white'?11:7,bottom=page.layout==='polaroid'?28:pad;
+    const { pad, bottom }=photoFrameInsets(photo,page.layout);
     const image=photos[index];
     if(image){
       const availableW=box.w-pad*2,availableH=box.h-pad-bottom;
@@ -119,8 +127,6 @@ export async function renderPage(page: DiaryPage, options: { scale?: number; pre
   });
   const bodyY=geometries.length ? Math.ceil(Math.max(...geometries.map(box=>visualBounds(box).bottom)))+42 : 242;
   ctx.fillStyle=page.template.textColor;ctx.font=`${page.template.fontSize*1.5}px "${font}"`;
-  const lines=page.text.body?wrap(ctx,page.text.body,650):[];
-  const lineHeight=page.template.fontSize*2.35;
   const overflow=titleLines.length>1 || (lines.length>0 && bodyY+(lines.length-1)*lineHeight>902);
   ctx.save();ctx.beginPath();ctx.rect(65,bodyY-30,670,934-(bodyY-30));ctx.clip();
   lines.forEach((text,i)=>ctx.fillText(text,74,bodyY+i*lineHeight));ctx.restore();
@@ -129,10 +135,10 @@ export async function renderPage(page: DiaryPage, options: { scale?: number; pre
     ctx.fillStyle='#8d997211';ctx.strokeStyle='#939d7766';ctx.setLineDash([6,7]);rounded(ctx,70,580,660,210,4);ctx.fill();ctx.stroke();ctx.setLineDash([]);
     ctx.font=`22px "${font}"`;ctx.fillStyle='#7d866b';ctx.textAlign='center';ctx.fillText('让一张照片，替你留住今天',400,692);ctx.textAlign='left';
   }
-  page.stickers.forEach(sticker=>{const pos=POSITIONS[sticker.position%POSITIONS.length];drawSticker(ctx,sticker.type,pos.x,pos.y,sticker.rotation);boxes.push({x:pos.x-55,y:pos.y-44,w:110,h:88,id:sticker.id,kind:'sticker'});});
+  page.stickers.forEach(sticker=>{const box=stickerGeometry(sticker);drawSticker(ctx,sticker.type,box.x+box.w/2,box.y+box.h/2,sticker.rotation);boxes.push({...box,id:sticker.id,kind:'sticker'});});
   ctx.font=`17px "${font}"`;ctx.fillStyle=page.template.textColor;ctx.fillText(page.text.location?`于 ${page.text.location}`:'',72,947);
   ctx.textAlign='right';ctx.font='italic 16px Georgia,serif';ctx.fillStyle='#8c8f6f';ctx.fillText('a day to remember',728,947);
-  return {canvas,overflow,errors,boxes};
+  return {canvas,overflow,errors,boxes,photoLayout};
 }
 export function hitTest(box: HitBox, x: number, y: number) {
   const cx=box.x+box.w/2,cy=box.y+box.h/2,a=-(box.rotation??0)*Math.PI/180;
