@@ -1,9 +1,10 @@
-export type Paper = 'cream' | 'kraft' | 'yellow' | 'grid' | 'lined';
+export type Paper = 'cream' | 'kraft' | 'yellow' | 'grid' | 'lined' | 'blush' | 'mint' | 'sky' | 'lavender';
 export type Border = 'wavy' | 'tape' | 'torn';
 export type Layout = 'polaroid' | 'duo' | 'scattered' | 'grid' | 'tape';
-export type StickerType = 'tape' | 'stamp' | 'arrow' | 'star' | 'heart';
+export type Theme = 'classic' | 'strawberry' | 'bunny' | 'bear' | 'sky' | 'candy' | 'kitty';
+export type StickerType = 'tape' | 'stamp' | 'arrow' | 'star' | 'heart' | 'bunny' | 'bear' | 'cat' | 'smile' | 'wink' | 'blush' | 'strawberry' | 'flower' | 'rainbow' | 'cloud' | 'bow' | 'cherry';
 export interface Template {
-  paper: Paper; border: Border; font: 'mashan' | 'zhimang'; textColor: string; fontSize: number;
+  theme?: Theme; paper: Paper; border: Border; font: 'mashan' | 'zhimang'; textColor: string; fontSize: number;
 }
 export interface Photo {
   id: string; blobKey: string; name: string; rotation: number; frame: 'white' | 'rounded' | 'shadow';

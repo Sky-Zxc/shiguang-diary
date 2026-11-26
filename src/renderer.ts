@@ -1,4 +1,6 @@
 import { HEIGHT, WIDTH } from './model';
+import { cuteStickerUrl, loadArt } from './cuteArt';
+import { PAPER_COLORS, themeArtUrl } from './themes';
 import { stickerGeometry } from './stickerGeometry';
 import { ensureFont, loadPhoto } from './resources';
 import type { DiaryPage, StickerType } from './types';
@@ -6,7 +8,7 @@ import { photoFrameInsets, photoGeometry, visualBounds, type Box, type PhotoLayo
 
 export interface HitBox extends Box { id: string; kind: 'photo' | 'sticker' }
 export interface RenderResult { canvas: HTMLCanvasElement; overflow: boolean; errors: string[]; boxes: HitBox[]; photoLayout: PhotoLayoutOptions }
-const papers = { cream: '#f9f4e6', kraft: '#d9bc93', yellow: '#fff0c8', grid: '#f8f6eb', lined: '#f6f3e9' };
+const papers = PAPER_COLORS;
 function rounded(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, radius = 5) {
   ctx.beginPath(); ctx.roundRect(x, y, w, h, radius);
 }
@@ -23,8 +25,9 @@ function tape(ctx: CanvasRenderingContext2D, x: number, y: number, w = 104, h = 
   for (let i = -w/2 + 8; i < w/2; i += 12) line(ctx, [[i, -h/2], [i+6, h/2]]);
   ctx.restore();
 }
-export function drawSticker(ctx: CanvasRenderingContext2D, type: StickerType, x: number, y: number, rotation = 0) {
+export function drawSticker(ctx: CanvasRenderingContext2D, type: StickerType, x: number, y: number, rotation = 0, image?: CanvasImageSource) {
   ctx.save(); ctx.translate(x, y); ctx.rotate(rotation * Math.PI / 180);
+  if(image){ctx.drawImage(image,-55,-44,110,88);ctx.restore();return;}
   ctx.strokeStyle = '#8c634d'; ctx.fillStyle = '#d7a46c'; ctx.lineWidth = 2.5; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
   if (type === 'tape') tape(ctx, 0, 0, 108, 32, 0);
   if (type === 'star') {
@@ -57,7 +60,11 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, width: number) {
 }
 export async function renderPage(page: DiaryPage, options: { scale?: number; preview?: boolean; strict?: boolean } = {}): Promise<RenderResult> {
   const { scale = 1, preview = false, strict = false } = options;
-  const font = await ensureFont(page.template.font);
+  const sceneUrl=themeArtUrl(page.template.theme);
+  const [font,scene,stickerImages]=await Promise.all([
+    ensureFont(page.template.font),sceneUrl?loadArt(sceneUrl):Promise.resolve(null),
+    Promise.all(page.stickers.map(sticker=>{const url=cuteStickerUrl(sticker.type);return url?loadArt(url):Promise.resolve(null);})),
+  ]);
   const canvas = document.createElement('canvas');canvas.width=WIDTH*scale;canvas.height=HEIGHT*scale;
   const ctx = canvas.getContext('2d');if(!ctx)throw new Error('画布初始化失败，请更新浏览器后重试。');
   ctx.scale(scale,scale); ctx.fillStyle=papers[page.template.paper];ctx.fillRect(0,0,WIDTH,HEIGHT);
@@ -68,6 +75,7 @@ export async function renderPage(page: DiaryPage, options: { scale?: number; pre
     for(let y=28;y<HEIGHT;y+=28)line(ctx,[[0,y],[WIDTH,y]]);
     if(page.template.paper==='grid')for(let x=28;x<WIDTH;x+=28)line(ctx,[[x,0],[x,HEIGHT]]);
   }
+  if(scene)ctx.drawImage(scene,0,0,WIDTH,HEIGHT);
   ctx.strokeStyle='#8a8c6980';ctx.lineWidth=1.7;
   if(page.template.border==='wavy') {
     ctx.beginPath();
@@ -135,7 +143,7 @@ export async function renderPage(page: DiaryPage, options: { scale?: number; pre
     ctx.fillStyle='#8d997211';ctx.strokeStyle='#939d7766';ctx.setLineDash([6,7]);rounded(ctx,70,580,660,210,4);ctx.fill();ctx.stroke();ctx.setLineDash([]);
     ctx.font=`22px "${font}"`;ctx.fillStyle='#7d866b';ctx.textAlign='center';ctx.fillText('让一张照片，替你留住今天',400,692);ctx.textAlign='left';
   }
-  page.stickers.forEach(sticker=>{const box=stickerGeometry(sticker);drawSticker(ctx,sticker.type,box.x+box.w/2,box.y+box.h/2,sticker.rotation);boxes.push({...box,id:sticker.id,kind:'sticker'});});
+  page.stickers.forEach((sticker,i)=>{const box=stickerGeometry(sticker);drawSticker(ctx,sticker.type,box.x+box.w/2,box.y+box.h/2,sticker.rotation,stickerImages[i]??undefined);boxes.push({...box,id:sticker.id,kind:'sticker'});});
   ctx.font=`17px "${font}"`;ctx.fillStyle=page.template.textColor;ctx.fillText(page.text.location?`于 ${page.text.location}`:'',72,947);
   ctx.textAlign='right';ctx.font='italic 16px Georgia,serif';ctx.fillStyle='#8c8f6f';ctx.fillText('a day to remember',728,947);
   return {canvas,overflow,errors,boxes,photoLayout};
